@@ -1,0 +1,26 @@
+
+        LogstashSocketAppender logstashAppender = new LogstashSocketAppender();
+        logstashAppender.setName("LOGSTASH");
+        logstashAppender.setContext(context);
+        String customFields = "{\"app_name\":\"" + appName + "\"}";
+
+        // Set the Logstash appender config from senthink properties
+        logstashAppender.setSyslogHost(loggingProperties.getLogging().getLogstash().getHost());
+        logstashAppender.setPort(loggingProperties.getLogging().getLogstash().getPort());
+        logstashAppender.setCustomFields(customFields);
+
+        // Limit the maximum length of the forwarded stacktrace so that it won't exceed the 8KB UDP limit of logstash
+        ShortenedThrowableConverter throwableConverter = new ShortenedThrowableConverter();
+        throwableConverter.setMaxLength(7500);
+        throwableConverter.setRootCauseFirst(true);
+        logstashAppender.setThrowableConverter(throwableConverter);
+
+        logstashAppender.start();
+
+        // Wrap the appender in an Async appender for performance
+        AsyncAppender asyncLogstashAppender = new AsyncAppender();
+        asyncLogstashAppender.setContext(context);
+        asyncLogstashAppender.setName("ASYNC_LOGSTASH");
+        asyncLogstashAppender.setQueueSize(loggingProperties.getLogging().getLogstash().getQueueSize());
+        asyncLogstashAppender.addAppender(logstashAppender);
+        asyncLogstashAppender.start();
